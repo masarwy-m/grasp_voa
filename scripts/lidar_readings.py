@@ -16,11 +16,11 @@ class LidarReadings:
         self.lidar_readings = None
         self.plot = True
         self.readings_2d = np.zeros((2, 360))
-        self.clean_readings = None
+        self.clean_readings = []
 
     def get_readings(self, req):
-        res = [Point2D(x=self.clean_readings[0, i], y=self.clean_readings[1, i]) for i in
-               range(np.shape(self.clean_readings)[1])]
+        res = [Point2D(x=self.clean_readings[i][0], y=self.clean_readings[i][1]) for i in
+               range(len(self.clean_readings))]
         return res
 
     def lidar_callback(self, msg: LaserScan):
@@ -32,6 +32,9 @@ class LidarReadings:
                 if dis != np.inf:
                     self.readings_2d[0, i] = dis * np.cos(angle)
                     self.readings_2d[1, i] = dis * np.sin(angle)
+                    if 0.5 <= dis < 1.0 and (0 <= angle <= np.radians(30) or np.radians(330) <= angle <= msg.angle_max):
+                        self.clean_readings.append([self.readings_2d[0, i], self.readings_2d[1, i]])
+                        print(angle, dis)
                     angle += inc
             self.clean_readings = self.readings_2d
             if self.plot:

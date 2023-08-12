@@ -1,0 +1,10 @@
+grasp_1:
+  up_straight: 0.9
+  down_straight: 0.5
+  up_angle: 0.0
+  down_angle: 0.0
+grasp_2:
+  up_straight: 0.7
+  down_straight: 0.0
+  up_angle: 0.6
+  down_angle: 0.0

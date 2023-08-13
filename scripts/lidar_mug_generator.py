@@ -1,4 +1,6 @@
 import numpy as np
+import yaml
+import matplotlib.pyplot as plt
 
 
 def find_tangent_points(circle_center, circle_radius, point_outside):
@@ -44,7 +46,7 @@ def sample_handle(circle_center, circle_radius, angle_degrees, line_length, num_
     return np.linspace(endpoint_on_circle, endpoint_outside_circle, num_sam)
 
 
-def add_noise(points, noise_level=0.05):
+def add_noise(points, noise_level=0.001):
     noisy_points = points + noise_level * np.random.randn(*points.shape)
     return noisy_points
 
@@ -71,7 +73,25 @@ def sample_lidar_readings(mug_center, mug_radius, handle_len, handle_angle, lida
 
     return add_noise(samples)
 
-# if __name__ == '__main__':
+
+if __name__ == '__main__':
+    config_file = '../config/object/mug.yaml'
+    with open(config_file, 'r') as yaml_file:
+        mug_data = yaml.safe_load(yaml_file)
+    print(mug_data)
+    radius = mug_data['radius']
+    center = np.array([mug_data['mug_center']['x'], mug_data['mug_center']['y']])
+    handle_len = mug_data['handle_len']
+    handle_angle = mug_data['handle_angle']
+    lidar_point = np.array([0, 0])
+    samples = sample_lidar_readings(center, radius, handle_len, handle_angle, lidar_point, 20)
+    plt.scatter(samples[:, 0], samples[:, 1], s=1)  # 's' controls the size of the points
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    plt.title('Lidar Readings as 2D Points')
+
+    plt.show()
+
 #     # Circle parameters
 #     circle_center = np.array([2, 2])
 #     circle_radius = 1.5

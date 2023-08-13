@@ -1,5 +1,5 @@
 import numpy as np
-from lidar_generator import sample_lidar_readings
+from lidar_mug_generator import sample_lidar_readings
 from ssd import compute_combined_rmse
 import matplotlib.pyplot as plt
 

@@ -24,7 +24,7 @@ class LidarReadings:
                       range(len(self.clean_readings))]
         return res
 
-    def lidar_callback(self, msg: LaserScan):
+    def lidar_callback(self, msg):
         if self.lidar_readings is None:
             angle = msg.angle_min
             inc = msg.angle_increment
@@ -35,9 +35,11 @@ class LidarReadings:
                     self.readings_2d[1, i] = dis * np.sin(angle)
                     if 0.25 <= self.readings_2d[0, i] < 0.4 and -0.05 < self.readings_2d[1, i] < 0.05:
                         self.clean_readings.append([self.readings_2d[0, i], self.readings_2d[1, i]])
-                    angle += inc
+                angle += inc
+            X = [self.clean_readings[i][0] for i in range(len(self.clean_readings))]
+            Y = [self.clean_readings[i][1] for i in range(len(self.clean_readings))]
             if self.plot:
-                plt.scatter(self.readings_2d[0, :], self.readings_2d[1, :], s=1)  # 's' controls the size of the points
+                plt.scatter(X, Y, s=1)  # 's' controls the size of the points
                 plt.xlabel('X')
                 plt.ylabel('Y')
                 plt.title('Lidar Readings as 2D Points')

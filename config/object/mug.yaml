@@ -1,2 +1,6 @@
-radius: 0.5
-handle_len: 0.25
+radius: 0.037
+handle_len: 0.025
+handle_angle: 295
+mug_center:
+  x: 0.3
+  y: 0.0

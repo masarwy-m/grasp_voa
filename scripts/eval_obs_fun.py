@@ -44,7 +44,18 @@ class LidarReadings:
                         if i in readings.keys():
                             res.append((i, dis, readings[i]))
                 angle += inc
-            with open(str(self.handle_angle) + '.csv', 'w', newline='') as csvfile:
+            with open('../obs_func_eval_res/matched_' + str(self.handle_angle) + '.csv', 'w', newline='') as csvfile:
+                csv_writer = csv.writer(csvfile)
+                csv_writer.writerows(res)
+            res = []
+            for i, dis in enumerate(lidar_readings):
+                if i == 359:
+                    break
+                x = dis * np.cos(angle)
+                y = dis * np.sin(angle)
+                res.append((i, dis if dis != np.inf and 0.25 <= x < 0.4 and -0.05 < y < 0.05 else None,
+                            readings[i] if i in readings.keys() else None))
+            with open('../obs_func_eval_res/data_' + str(self.handle_angle) + '.csv', 'w', newline='') as csvfile:
                 csv_writer = csv.writer(csvfile)
                 csv_writer.writerows(res)
             plt.scatter(samples[0, :], samples[1, :], c='b', s=1, label='synthetic samples')

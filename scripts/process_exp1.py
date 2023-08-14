@@ -7,7 +7,7 @@ from matplotlib.table import Table
 if __name__ == '__main__':
     angles = {}
     files = os.listdir('../obs_func_eval_res')
-    csv_files = [os.path.join('../obs_func_eval_res', file) for file in files if file.endswith('csv')]
+    csv_files = [os.path.join('../obs_func_eval_res', file) for file in files if file.startswith('matched')]
     for file in csv_files:
         with open(file, 'r') as csv_file:
             csv_reader = csv.reader(csv_file)

@@ -26,7 +26,7 @@ def compute_combined_rmse(observed_points, mug_center, mug_radius, handle_angle,
     line_end = line_start + handle_length * np.array([np.cos(handle_angle), np.sin(handle_angle)])
 
     squared_distances = []
-    for point in observed_points:
+    for point in observed_points.T:
         line_distance = point_to_line_segment_distance(point, line_start, line_end)
         circle_distance = compute_distance_to_circle(point, mug_center, mug_radius)
         combined_distance = min(line_distance, circle_distance)

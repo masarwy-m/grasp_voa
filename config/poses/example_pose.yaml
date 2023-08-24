@@ -1,0 +1,9 @@
+pose:
+  translation:
+    x: 0.3  # Translation along the X-axis
+    y: 0.0  # Translation along the Y-axis
+    z: 0.0  # Translation along the Z-axis
+  rotation:
+    x: 0.0  # Rotation angle (in degrees) around the X-axis
+    y: 0.0  # Rotation angle (in degrees) around the Y-axis
+    z: 120.0 # Rotation angle (in degrees) around the Z-axis

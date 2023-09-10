@@ -1,0 +1,18 @@
+<mujoco model="sprayflask">
+<!--  <visual>-->
+<!--    <headlight ambient="0 0 0" diffuse="0 0 0" specular="1 1 1"/>-->
+<!--    <quality shadowsize="8192"/>-->
+<!--  </visual>-->
+
+  <asset>
+    <material name="mat" rgba="0.3 0.3 0.9 1." specular="0.5" shininess="0.5"/>
+    <mesh file="./objects/test/test_obj.obj" scale="1.0 1.0 1.0"/>
+  </asset>
+
+  <worldbody>
+    <body name="manipulated_object" pos="0 0 1">
+      <joint type="free" name="manipulated_object_dof"/>
+      <geom type="mesh" mesh="test_obj" material="mat" euler="0 0 0" group="1"/>
+    </body>
+  </worldbody>
+</mujoco>

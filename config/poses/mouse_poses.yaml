@@ -1,0 +1,39 @@
+pose_1:
+  translation:
+    x: 0.0
+    y: 0.0
+    z: 0.1
+  rotation:
+    x: 1.57079632679
+    y: 3.14159265359
+    z: 0.0
+
+pose_2:
+  translation:
+    x: 0.0
+    y: 0.0
+    z: 0.1
+  rotation:
+    x: 1.57079632679
+    y: 1.57079632679
+    z: 0.0
+
+pose_3:
+  translation:
+    x: 0.0
+    y: 0.0
+    z: 0.1
+  rotation:
+    x: 1.57079632679
+    y: 0
+    z: -3.14159265359
+
+pose_4:
+  translation:
+    x: 0.0
+    y: 0.0
+    z: 0.1
+  rotation:
+    x: 1.57079632679
+    y: 3.14159265359
+    z: 1.57079632679

@@ -8,11 +8,10 @@ import matplotlib.pyplot as plt
 import csv
 
 from mesh_lidar_generator import extract_lidar_readings
-from synthetic_lidar import sample_lidar
 
 
 class LidarReadings:
-    def __init__(self, pose, mesh_file, dist, scale, pose_id, obj):
+    def __init__(self, pose, mesh_file, dist, scale, pose_id, q, obj):
         rospy.init_node('lidar_eval_node', anonymous=True)
         rospy.Subscriber('/scan', LaserScan, self.lidar_callback)
         self.msg = None
@@ -21,6 +20,7 @@ class LidarReadings:
         self.pose_id = pose_id
         self.mesh_file = mesh_file
         self.scale = scale
+        self.q = q
         self.obj = obj
 
     def lidar_callback(self, msg):
@@ -28,8 +28,8 @@ class LidarReadings:
             self.msg = msg
             # samples, readings = sample_lidar(self.center, self.radius, self.handle_len, self.handle_angle)
             samples, _, readings = extract_lidar_readings(obj_file_path=self.mesh_file, pose=self.pose,
-                                                          lidar_height=0.014, lidar_dist=self.dist,
-                                                          scale=self.scale)
+                                                          lidar_height=0.01, lidar_dist=self.dist,
+                                                          scale=self.scale, q=self.q)
             angle = msg.angle_min
             inc = msg.angle_increment
             lidar_readings = np.array(msg.ranges)
@@ -42,15 +42,15 @@ class LidarReadings:
                 x = dis * np.cos(angle)
                 y = dis * np.sin(angle)
                 if dis != np.inf:
-                    if self.dist - 0.20 <= x < self.dist + 0.20 and -0.1 < y < 0.1:
+                    if self.dist - 0.09 <= x < self.dist and -0.07 < y < 0.07:
                         X.append(x)
                         Y.append(y)
                         if i in readings.keys():
                             res.append((i, dis, readings[i]))
                 angle += inc
 
-            with open('../results/' + self.obj + '/' + str(self.dist) + '_' + str(self.pose_id) + '.csv', 'w',
-                      newline='') as csvfile:
+            with open('../results/' + self.obj + '/different_pov/' + str(self.q) + '_' + str(self.pose_id) + '.csv',
+                      'w', newline='') as csvfile:
                 csv_writer = csv.writer(csvfile)
                 csv_writer.writerows(res)
             res = []
@@ -59,10 +59,11 @@ class LidarReadings:
                     break
                 x = dis * np.cos(angle)
                 y = dis * np.sin(angle)
-                res.append((i, dis if dis != np.inf and 0.1 <= x < 0.8 and -0.1 < y < 0.1 else None,
+                res.append((i, dis if dis != np.inf and 0.1 <= x < 0.16 and -0.08 < y < 0.08 else None,
                             readings[i] if i in readings.keys() else None))
             with open(
-                    '../results/' + self.obj + '/data_' + str(self.dist) + '_' + str(self.pose_id) + '.csv', 'w',
+                    '../results/' + self.obj + '/different_pov/data_' + str(self.q) + '_' + str(self.pose_id) + '.csv',
+                    'w',
                     newline='') as csvfile:
                 csv_writer = csv.writer(csvfile)
                 csv_writer.writerows(res)
@@ -76,13 +77,13 @@ class LidarReadings:
 
 
 if __name__ == '__main__':
-    mesh_file = '../data/objects/sprayflask/Sprayflask_800_tex.obj'
-    dist = 0.3
-    scale = 3
-    pose_id = 2
-    obj = 'sprayflask'
-    with open('../config/poses/sprayflask_poses.yaml', 'r') as yaml_file:
+    mesh_file = '../data/objects/mouse/my_mouse.obj'
+    dist = 0.16
+    q = 4
+    scale = 1.
+    pose_id = 4
+    obj = 'mouse'
+    with open('../config/poses/mouse_poses.yaml', 'r') as yaml_file:
         pose = yaml.safe_load(yaml_file)['pose_' + str(pose_id)]
-    lr = LidarReadings(mesh_file=mesh_file, dist=dist, scale=scale, pose_id=pose_id,
-                       pose=pose, obj=obj)
+    lr = LidarReadings(mesh_file=mesh_file, dist=dist, scale=scale, pose_id=pose_id, pose=pose, q=q, obj=obj)
     rospy.spin()

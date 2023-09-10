@@ -1,0 +1,29 @@
+<mujoco model="dexnet_mug">
+<!--  <visual>-->
+<!--    <headlight ambient="0 0 0" diffuse="0 0 0" specular="1 1 1"/>-->
+<!--    <quality shadowsize="8192"/>-->
+<!--  </visual>-->
+
+  <asset>
+    <material name="mug" rgba="0.3 0.3 0.5 1" specular="0.5" shininess="0.5"/>
+    <mesh file="./objects/dexnet_mug/FlowerCup_800_tex.obj" scale="7.5 7.5 2."/>
+  </asset>
+
+  <default>
+    <default class="collision">
+      <geom type="box" group="3"/>
+      <default class="cup">
+        <geom size="0.0026 0.00704 0.033"/>
+      </default>
+      <default class="handle">
+        <geom size="0.0025 0.00328 0.0055"/>
+      </default>
+    </default>
+  </default>
+  <worldbody>
+    <body name="manipulated_object" pos="0 0 1">
+      <joint type="free" name="manipulated_object_dof"/>
+      <geom type="mesh" mesh="FlowerCup_800_tex" material="mug" euler="0 0 1.5" group="1"/>
+    </body>
+  </worldbody>
+</mujoco>

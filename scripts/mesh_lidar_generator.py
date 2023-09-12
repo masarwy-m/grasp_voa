@@ -188,7 +188,7 @@ def extract_lidar_readings(obj_file_path, pose=None, pose_file=None, lidar_heigh
         angles = list(range(180, 360))
     tz += np.abs(min_z)
     vertices = vertices + np.array([tx, ty, tz])
-    visualize_mesh(vertices, faces)
+    # visualize_mesh(vertices, faces)
     # trans = transformation(tx, ty, tz, rx, ry, rz)
     # vertices = np.dot(np.hstack((vertices, np.ones((vertices.shape[0], 1)))), trans)[:, :3]
     h = lidar_height

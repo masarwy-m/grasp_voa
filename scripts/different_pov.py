@@ -61,12 +61,12 @@ class LidarReadings:
                 y = dis * np.sin(angle)
                 res.append((i, dis if dis != np.inf and 0.1 <= x < 0.16 and -0.08 < y < 0.08 else None,
                             readings[i] if i in readings.keys() else None))
-            with open(
-                    '../results/' + self.obj + '/different_pov/data_' + str(self.q) + '_' + str(self.pose_id) + '.csv',
-                    'w',
-                    newline='') as csvfile:
-                csv_writer = csv.writer(csvfile)
-                csv_writer.writerows(res)
+            # with open(
+            #         '../results/' + self.obj + '/different_pov/data_' + str(self.q) + '_' + str(self.pose_id) + '.csv',
+            #         'w',
+            #         newline='') as csvfile:
+            #     csv_writer = csv.writer(csvfile)
+            #     csv_writer.writerows(res)
             plt.scatter(samples[:, 0], samples[:, 1], c='b', s=1, label='synthetic samples')
             plt.scatter(X, Y, c='r', s=1, label='real data')  # 's' controls the size of the points
             plt.xlabel('X')
@@ -77,13 +77,13 @@ class LidarReadings:
 
 
 if __name__ == '__main__':
-    mesh_file = '../data/objects/mouse/my_mouse.obj'
-    dist = 0.16
-    q = 4
+    obj = 'sprayflask'
+    mesh_file = '../data/objects/' + obj + '/sprayflask.obj'
+    dist = 0.30
+    q = 2
     scale = 1.
-    pose_id = 4
-    obj = 'mouse'
-    with open('../config/poses/mouse_poses.yaml', 'r') as yaml_file:
-        pose = yaml.safe_load(yaml_file)['pose_' + str(pose_id)]
+    pose_id = 1
+    with open('../config/poses/' + obj + '_poses.yaml', 'r') as yaml_file:
+        pose = yaml.safe_load(yaml_file)['P' + str(pose_id)]
     lr = LidarReadings(mesh_file=mesh_file, dist=dist, scale=scale, pose_id=pose_id, pose=pose, q=q, obj=obj)
     rospy.spin()

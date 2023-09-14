@@ -57,8 +57,8 @@ class LidarReadings:
             for i, dis in enumerate(lidar_readings):
                 if i == 359:
                     break
-                x = dis * np.cos(angle)
-                y = dis * np.sin(angle)
+                x = dis * np.cos(np.radians(angle))
+                y = dis * np.sin(np.radians(angle))
                 res.append((i, dis if dis != np.inf and 0.1 <= x < 0.8 and -0.1 < y < 0.1 else None,
                             readings[i] if i in readings.keys() else None))
             with open(
@@ -76,7 +76,7 @@ class LidarReadings:
 
 
 if __name__ == '__main__':
-    mesh_file = '../data/objects/sprayflask/Sprayflask_800_tex.obj'
+    mesh_file = '../data/objects/sprayflask/sprayflask.obj'
     dist = 0.3
     scale = 3
     pose_id = 2

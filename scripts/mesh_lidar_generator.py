@@ -162,7 +162,7 @@ def extract_lidar_readings(obj_file_path, pose=None, pose_file=None, lidar_heigh
     desired_pose = pose
     if pose_file is not None:
         with open(pose_file, 'r') as yaml_file:
-            desired_pose = yaml.load(yaml_file, Loader=yaml.FullLoader)
+            desired_pose = yaml.load(yaml_file, Loader=yaml.FullLoader)['pose']
     x, y, z, w = euler_to_quaternion(desired_pose['rotation']['x'], desired_pose['rotation']['y'],
                                      desired_pose['rotation']['z'])
     rotation_matrix = np.array([
@@ -188,7 +188,7 @@ def extract_lidar_readings(obj_file_path, pose=None, pose_file=None, lidar_heigh
         angles = list(range(180, 360))
     tz += np.abs(min_z)
     vertices = vertices + np.array([tx, ty, tz])
-    # visualize_mesh(vertices, faces)
+    visualize_mesh(vertices, faces)
     # trans = transformation(tx, ty, tz, rx, ry, rz)
     # vertices = np.dot(np.hstack((vertices, np.ones((vertices.shape[0], 1)))), trans)[:, :3]
     h = lidar_height
@@ -220,10 +220,10 @@ def extract_lidar_readings(obj_file_path, pose=None, pose_file=None, lidar_heigh
 
 
 if __name__ == "__main__":
-    mesh_file = '../data/objects/endstop_holder/endstop_holder.obj'
+    mesh_file = '../data/objects/expo/expo.obj'
     pose_file = '../config/poses/example_pose.yaml'
-    inter_points, points, readings = extract_lidar_readings(mesh_file, pose_file=pose_file, lidar_height=0.05,
-                                                            scale=1.0)
+    inter_points, points, readings = extract_lidar_readings(mesh_file, pose_file=pose_file, lidar_height=0.001,
+                                                            scale=2.0)
     # plt.scatter(inter_points[:, 0], inter_points[:, 1])
     # plt.show()
 

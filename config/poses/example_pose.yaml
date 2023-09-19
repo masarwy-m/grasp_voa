@@ -4,6 +4,6 @@ pose:
     y: 0.0  # Translation along the Y-axis
     z: 0.0  # Translation along the Z-axis
   rotation:
-    x: 0.0  # Rotation angle (in degrees) around the X-axis
-    y: 0.0  # Rotation angle (in degrees) around the Y-axis
-    z: 120.0 # Rotation angle (in degrees) around the Z-axis
+    x: 1.57079632679  # Rotation angle (in degrees) around the X-axis
+    y: 1.57079632679  # Rotation angle (in degrees) around the Y-axis
+    z: 1.57079632679 # Rotation angle (in degrees) around the Z-axis

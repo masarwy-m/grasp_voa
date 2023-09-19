@@ -38,7 +38,7 @@ def similarity(ob1, ob2):
 
 class GaussianSim:
     def __init__(self, std=1):
-        self.name = 'gaussian similarity'
+        self.name = 'gaussian_similarity'
         self.std = std
         self.id = 3
 
@@ -50,13 +50,12 @@ class GaussianSim:
         if not isinstance(ob2, np.ndarray):
             v2 = ob2vec(ob2)
         norm = np.linalg.norm(v1 - v2)
-        print(norm)
         return (1 / (self.std * np.sqrt(2 * np.pi))) * np.exp(-norm ** 2 / (2 * self.std ** 2))
 
 
 class NormSim:
     def __init__(self):
-        self.name = 'norm similarity'
+        self.name = 'norm_similarity'
         self.id = 2
 
     def __call__(self, ob1, ob2):
@@ -72,7 +71,7 @@ class NormSim:
 
 class DeterministicSim:
     def __init__(self, err=0.008):
-        self.name = 'deterministic similarity'
+        self.name = 'deterministic_similarity'
         self.err = err
         self.id = 1
 
@@ -149,6 +148,13 @@ class VOA:
         for p_j in self.obj_poses:
             belief[p_j] = sim_function(ob, sensor_id_generate_readings[p_j]) * self.belief[p_j]
             normalization += belief[p_j]
+        if normalization == 0:
+            norm = NormSim()
+            max_value = max(norm(ob, sensor_id_generate_readings[k]) for k in belief.keys())
+            max_keys = [k for k in belief.keys() if norm(ob, sensor_id_generate_readings[k]) == max_value]
+            for k in max_keys:
+                belief[k] = 1.0 / len(max_keys)
+            return belief
         for p in belief.keys():
             belief[p] /= normalization
         return belief
@@ -196,6 +202,10 @@ class VOA:
         return real_reading, generated_reading
 
     def results_table1(self, sensors, sim_function):
+        csv_table = [[''], [''], ['true'], ['∅']]
+        for p in self.obj_poses:
+            csv_table[0] += [p, p, p, p]
+            csv_table[1] += ['x₉*', 'γ*(β\')', 'xˆ₉*', 'γ*(βˆ\')']
         table = {'': {}, 'ground_truth': {}}
         for pose in self.obj_poses:
             table[''][pose] = (self.init_grasp_star, self.init_q_star, self.init_grasp_star, self.init_q_star)
@@ -207,8 +217,11 @@ class VOA:
                     s_star = gs
                     g_star = grasp
             table['ground_truth'][pose] = (g_star, s_star, g_star, s_star)
-        for x_s in sensors:
+            csv_table[2] += [g_star, s_star, g_star, s_star]
+            csv_table[3] += [self.init_grasp_star, self.init_q_star, self.init_grasp_star, self.init_q_star]
+        for i, x_s in enumerate(sensors):
             table[x_s] = {}
+            csv_table += [[x_s]]
             for pose in self.obj_poses:
                 real, gen = self.read_data(x_s, pose)
                 beta = self.belief_update_by_ob(sim_function, real, x_s)
@@ -216,6 +229,11 @@ class VOA:
                 x_star, q_star = self.best_grasp_real(beta, pose)
                 x_star_hat, q_star_hat = self.best_grasp_gen(beta_hat)
                 table[x_s][pose] = (x_star, q_star, x_star_hat, q_star_hat)
+                csv_table[i + 4] += [x_star, q_star, x_star_hat, q_star_hat]
+        with open('../results/' + obj + '/' + sim_function.name + '_table.csv', 'w', newline='') as csv_file:
+            csv_writer = csv.writer(csv_file)
+            for row in csv_table:
+                csv_writer.writerow(row)
         return table
 
     def results_table2(self, sensors, sim_function):
@@ -264,7 +282,7 @@ class VOA:
         return table
 
     def plot_example(self):
-        file_name = '1_4.csv'
+        file_name = '1_1.csv'
         source_path = os.path.join(self.readings_file, file_name)
         df = pd.read_csv(source_path, header=None)
         real_reading = {}
@@ -273,7 +291,6 @@ class VOA:
             degrees = int(row[0])
             real_reading[degrees] = row[1]
             generated_reading[degrees] = row[2]
-            print(int(row[0]), row[1], row[2])
         X1 = []
         X2 = []
         Y1 = []
@@ -283,8 +300,6 @@ class VOA:
             X2.append(generated_reading[i] * np.cos(np.radians(i)))
             Y1.append(real_reading[i] * np.sin(np.radians(i)))
             Y2.append(generated_reading[i] * np.sin(np.radians(i)))
-        print(X1, Y1)
-        print(X2, Y2)
         plt.scatter(X2, Y2, c='b', s=50)
         plt.scatter(X1, Y1, c='r', s=50)  # 's' controls the size of the points
         plt.xlabel('X')
@@ -360,6 +375,9 @@ class AEVD:
             # print(self.similarity(ob, sensor_id_generate_readings[p_j]))
             belief[p_j] = similarity(ob, sensor_id_generate_readings[p_j]) * self.belief[p_j]
             normalization += belief[p_j]
+        if normalization == 0:
+            belief[max(belief, key=lambda k: NormSim()(ob, sensor_id_generate_readings[p_j]))] = 1.0
+            return belief
         for p in self.obj_poses:
             belief[p] /= normalization
         return belief
@@ -411,7 +429,6 @@ def analysis1(obj):
     colors1 = ['blue', 'red', 'green']
     colors2 = ['dodgerblue', 'tomato', 'lime']
     sensors = ['Q1', 'Q2', 'Q3', 'Q4']
-    ssensors = ['1', '2', '3', '4']
     aevd_calc = AEVD(grasp_score_file='../config/grasp_score/' + obj + '.yaml',
                      readings_file='../results/' + obj + '/different_pov')
 
@@ -433,25 +450,25 @@ def analysis1(obj):
             aevd_y_lines[sim].append(aevd_points[sensor][i])
     for i, category in enumerate(sensors):
         x_values = [int2Roman(int(category[1]))] * 3
-        plt.scatter(x_values, voa_points[category], marker='o', color=colors1, s=50)
-        plt.scatter(x_values, aevd_points[category], marker='^', color=colors2, s=100)
+        plt.scatter(x_values, voa_points[category], marker='o', color=colors1, s=1500)
+        plt.scatter(x_values, aevd_points[category], marker='^', color=colors2, s=2000)
     # for i, sim in enumerate(sims):
     #     plt.plot(ssensors, voa_y_lines[sim], color=colors1[i], linestyle='-', linewidth=2)
     #     plt.plot(ssensors, aevd_y_lines[sim], color=colors2[i], linestyle='-', linewidth=2)
 
-    plt.xlabel('Sensor Config')
+    plt.xlabel('Sensor Config', fontsize=24)
     handles = []
-    handles.append(plt.Line2D([0], [0], marker='o', color='b', label=f'VOA, metric 1', markersize=5))
-    handles.append(plt.Line2D([0], [0], marker='^', color='dodgerblue', label=f'Executed, metric 1', markersize=5))
-    handles.append(plt.Line2D([0], [0], marker='o', color='r', label=f'VOA, metric 2', markersize=5))
-    handles.append(plt.Line2D([0], [0], marker='^', color='tomato', label=f'Executed, metric 2', markersize=5))
-    handles.append(plt.Line2D([0], [0], marker='o', color='g', label=f'VOA, metric 3', markersize=5))
-    handles.append(plt.Line2D([0], [0], marker='^', color='lime', label=f'Executed, metric 3', markersize=5))
-    plt.legend(handles=handles, loc='lower center', bbox_to_anchor=(0.5, -0.115), ncol=6, fontsize='x-large')
+    handles.append(plt.Line2D([0], [0], marker='o', color='b', label=f'VOA, metric 1', markersize=20))
+    handles.append(plt.Line2D([0], [0], marker='^', color='dodgerblue', label=f'Executed, metric 1', markersize=20))
+    handles.append(plt.Line2D([0], [0], marker='o', color='r', label=f'VOA, metric 2', markersize=20))
+    handles.append(plt.Line2D([0], [0], marker='^', color='tomato', label=f'Executed, metric 2', markersize=20))
+    handles.append(plt.Line2D([0], [0], marker='o', color='g', label=f'VOA, metric 3', markersize=20))
+    handles.append(plt.Line2D([0], [0], marker='^', color='lime', label=f'Executed, metric 3', markersize=20))
+    plt.legend(handles=handles, loc='lower right', ncol=1, fontsize='xx-large')
 
     # Rotate x-axis labels for better readability (optional)
-    plt.xticks(rotation=45)
-
+    plt.xticks(rotation=45, fontsize=24)
+    plt.tight_layout()
     # Show the plot
     plt.show()
 
@@ -463,11 +480,12 @@ def table(table_id, obj):
     sims = [DeterministicSim(), GaussianSim(), NormSim()]
     sensors = ['Q1', 'Q2', 'Q3', 'Q4']
     if table_id == 1:
-        table = voa_calc.results_table1(sensors, sims[0])
-        for x_s in table.keys():
-            print(x_s)
-            for pose in table[x_s].keys():
-                print(table[x_s][pose])
+        for sim in sims:
+            voa_calc.results_table1(sensors, sim)
+        # for x_s in table.keys():
+        #     print(x_s)
+        #     for pose in table[x_s].keys():
+        #         print(table[x_s][pose])
     else:
         table = voa_calc.results_table2(sensors, sims[-1])
         for x_s in table.keys():
@@ -506,9 +524,10 @@ def base(obj, test_num):
                 values[0, int(pose[1]) - 1] = belief[pose]
             ax.imshow(values, cmap='GnBu', vmin=0, vmax=1)
             for j in range(4):
-                ax.text(j, 0, "{:.4f}".format(belief['P' + str(j + 1)]), ha='center', va='center', color='black')
+                ax.text(j, 0, "{:.4f}".format(belief['P' + str(j + 1)]), ha='center', va='center', color='black',
+                        fontsize=20)
             title = 'Sensor config ' + sensor[1], 'τ' + str(sim.id)
-            ax.set_title(title, fontsize=16)
+            ax.set_title(title, fontsize=24)
             ax.axis('off')
             i += 1
 
@@ -520,5 +539,5 @@ def base(obj, test_num):
 
 
 if __name__ == '__main__':
-    obj = 'sprayflask'
-    analysis1(obj)
+    obj = 'endstop_holder'
+    table(1, obj)

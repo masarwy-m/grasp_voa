@@ -370,15 +370,16 @@ class AEVD:
         sensor_id_generate_readings = self.generated_readings[sensor_id]
         normalization = 0
         for p_j in self.obj_poses:
-            # show_ob(ob)
-            # show_ob(sensor_id_generate_readings[p_j])
-            # print(self.similarity(ob, sensor_id_generate_readings[p_j]))
             belief[p_j] = similarity(ob, sensor_id_generate_readings[p_j]) * self.belief[p_j]
             normalization += belief[p_j]
         if normalization == 0:
-            belief[max(belief, key=lambda k: NormSim()(ob, sensor_id_generate_readings[p_j]))] = 1.0
+            norm = NormSim()
+            max_value = max(norm(ob, sensor_id_generate_readings[k]) for k in belief.keys())
+            max_keys = [k for k in belief.keys() if norm(ob, sensor_id_generate_readings[k]) == max_value]
+            for k in max_keys:
+                belief[k] = 1.0 / len(max_keys)
             return belief
-        for p in self.obj_poses:
+        for p in belief.keys():
             belief[p] /= normalization
         return belief
 

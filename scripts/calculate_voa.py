@@ -510,7 +510,7 @@ def base(obj, test_num):
         fig, axes = plt.subplots(4, 3, figsize=(12, 9))
         i = 0
         for sensor, sim in product(sensors, sims):
-            file_name = sensor[1] + '_1.csv'
+            file_name = sensor[1] + '_6.csv'
             source_path = os.path.join('../results/' + obj + '/different_pov', file_name)
             df = pd.read_csv(source_path, header=None)
             real_reading = {}
@@ -519,12 +519,13 @@ def base(obj, test_num):
                 real_reading[degrees] = row[1]
             ax = axes.flat[i]
             belief = aevd_calc.belief_update(sensor, real_reading, sim)
-            values = np.zeros((1, 4))
+            poses_num = 6
+            values = np.zeros((1, poses_num))
             for pose in belief.keys():
                 values[0, int(pose[1]) - 1] = belief[pose]
             ax.imshow(values, cmap='GnBu', vmin=0, vmax=1)
-            for j in range(4):
-                ax.text(j, 0, "{:.4f}".format(belief['P' + str(j + 1)]), ha='center', va='center', color='black',
+            for j in range(poses_num):
+                ax.text(j, 0, "{:.3f}".format(belief['P' + str(j + 1)]), ha='center', va='center', color='black',
                         fontsize=20)
             title = 'Sensor config ' + sensor[1], 'τ' + str(sim.id)
             ax.set_title(title, fontsize=24)
@@ -539,5 +540,5 @@ def base(obj, test_num):
 
 
 if __name__ == '__main__':
-    obj = 'endstop_holder'
-    table(1, obj)
+    obj = 'mug'
+    base(obj, 2)

@@ -77,12 +77,12 @@ class LidarReadings:
 
 
 if __name__ == '__main__':
-    obj = 'sprayflask'
-    mesh_file = '../data/objects/' + obj + '/sprayflask.obj'
-    dist = 0.30
+    obj = 'expo'
+    mesh_file = '../data/objects/' + obj + '/' + obj + '.obj'
+    dist = 0.25
     q = 2
-    scale = 1.
-    pose_id = 1
+    scale = 2.4
+    pose_id = 2
     with open('../config/poses/' + obj + '_poses.yaml', 'r') as yaml_file:
         pose = yaml.safe_load(yaml_file)['P' + str(pose_id)]
     lr = LidarReadings(mesh_file=mesh_file, dist=dist, scale=scale, pose_id=pose_id, pose=pose, q=q, obj=obj)

@@ -22,6 +22,12 @@ def show_ob(ob):
     plt.show()
 
 
+def id_correcting(base_id):
+    if base_id is None:
+        return None
+    return base_id[0] + str(int(base_id[1]) - 1)
+
+
 def ob2vec(ob):
     v = np.ones((360,))
     for degree in ob.keys():
@@ -86,6 +92,21 @@ class DeterministicSim:
         return np.all(is_in_range).astype(float)
 
 
+def read_data(readings_file, sensor_id, pose_id):
+    file_name = sensor_id[1] + '_' + pose_id[1] + '.csv'
+    source_path = os.path.join(readings_file, file_name)
+    df = pd.read_csv(source_path, header=None)
+    real_reading = np.ones((360,))
+    generated_reading = np.ones((360,))
+    for index, row in df.iterrows():
+        degrees = int(row[0])
+        if float(row[1]) > 1.:
+            continue
+        real_reading[degrees] = row[1]
+        generated_reading[degrees] = row[2]
+    return real_reading, generated_reading
+
+
 class VOA:
     def __init__(self, grasp_score_file, readings_file):  # , poses_file, mesh_file):
         self.readings_file = readings_file
@@ -126,7 +147,7 @@ class VOA:
         for sensor_id, pose_id in product(self.sensor_configs, self.obj_poses):
             if not sensor_id in self.generated_readings.keys():
                 self.generated_readings[sensor_id] = {}
-            _, self.generated_readings[sensor_id][pose_id] = self.read_data(sensor_id, pose_id)
+            _, self.generated_readings[sensor_id][pose_id] = read_data(self.readings_file, sensor_id, pose_id)
             # show_ob(self.generated_readings[sensor_id][pose_id])
 
     def voa_belief_update(self, sensor_id, p_i, sim_function):
@@ -151,7 +172,7 @@ class VOA:
         if normalization == 0:
             norm = NormSim()
             max_value = max(norm(ob, sensor_id_generate_readings[k]) for k in belief.keys())
-            max_keys = [k for k in belief.keys() if norm(ob, sensor_id_generate_readings[k]) == max_value]
+            max_keys = [k for k in belief.keys() if max_value - norm(ob, sensor_id_generate_readings[k]) < 0.015]
             for k in max_keys:
                 belief[k] = 1.0 / len(max_keys)
             return belief
@@ -163,21 +184,11 @@ class VOA:
         voa = -self.init_q_star
         for p_i in self.obj_poses:
             new_belief = self.voa_belief_update(sensor_id, p_i, sim_function)
-            _, q_star = self.best_grasp_gen(new_belief)
+            _, q_star = self.best_grasp(new_belief)
             voa += self.belief[p_i] * q_star
         return voa
 
-    def best_grasp_real(self, belief, pose):
-        q_star = 0
-        best_grasp = None
-        for grasp in self.grasps:
-            q = belief[pose] * self.grasp_score[grasp][pose]
-            if q > q_star:
-                q_star = q
-                best_grasp = grasp
-        return best_grasp, q_star
-
-    def best_grasp_gen(self, belief):
+    def best_grasp(self, belief):
         q_star = 0
         best_grasp = None
         for grasp in self.grasps:
@@ -189,22 +200,10 @@ class VOA:
                 best_grasp = grasp
         return best_grasp, q_star
 
-    def read_data(self, sensor_id, pose_id):
-        file_name = sensor_id[1] + '_' + pose_id[1] + '.csv'
-        source_path = os.path.join(self.readings_file, file_name)
-        df = pd.read_csv(source_path, header=None)
-        real_reading = np.ones((360,))
-        generated_reading = np.ones((360,))
-        for index, row in df.iterrows():
-            degrees = int(row[0])
-            real_reading[degrees] = row[1]
-            generated_reading[degrees] = row[2]
-        return real_reading, generated_reading
-
     def results_table1(self, sensors, sim_function):
         csv_table = [[''], [''], ['true'], ['∅']]
         for p in self.obj_poses:
-            csv_table[0] += [p, p, p, p]
+            csv_table[0] += [id_correcting(p), id_correcting(p), id_correcting(p), id_correcting(p)]
             csv_table[1] += ['x₉*', 'γ*(β\')', 'xˆ₉*', 'γ*(βˆ\')']
         table = {'': {}, 'ground_truth': {}}
         for pose in self.obj_poses:
@@ -217,19 +216,20 @@ class VOA:
                     s_star = gs
                     g_star = grasp
             table['ground_truth'][pose] = (g_star, s_star, g_star, s_star)
-            csv_table[2] += [g_star, s_star, g_star, s_star]
-            csv_table[3] += [self.init_grasp_star, self.init_q_star, self.init_grasp_star, self.init_q_star]
+            csv_table[2] += [id_correcting(g_star), s_star, id_correcting(g_star), s_star]
+            csv_table[3] += [id_correcting(self.init_grasp_star), self.init_q_star, id_correcting(self.init_grasp_star),
+                             self.init_q_star]
         for i, x_s in enumerate(sensors):
             table[x_s] = {}
             csv_table += [[x_s]]
             for pose in self.obj_poses:
-                real, gen = self.read_data(x_s, pose)
+                real, gen = read_data(self.readings_file, x_s, pose)
                 beta = self.belief_update_by_ob(sim_function, real, x_s)
                 beta_hat = self.belief_update_by_ob(sim_function, gen, x_s)
-                x_star, q_star = self.best_grasp_real(beta, pose)
-                x_star_hat, q_star_hat = self.best_grasp_gen(beta_hat)
+                x_star, q_star = self.best_grasp(beta)
+                x_star_hat, q_star_hat = self.best_grasp(beta_hat)
                 table[x_s][pose] = (x_star, q_star, x_star_hat, q_star_hat)
-                csv_table[i + 4] += [x_star, q_star, x_star_hat, q_star_hat]
+                csv_table[i + 4] += [id_correcting(x_star), q_star, id_correcting(x_star_hat), q_star_hat]
         with open('../results/' + obj + '/' + sim_function.name + '_table.csv', 'w', newline='') as csv_file:
             csv_writer = csv.writer(csv_file)
             for row in csv_table:
@@ -262,11 +262,11 @@ class VOA:
             voa = 0
             aevd = 0
             for pose in self.obj_poses:
-                real, gen = self.read_data(x_s, pose)
+                real, gen = read_data(self.readings_file, x_s, pose)
                 beta = self.belief_update_by_ob(sim_function, real, x_s)
                 beta_hat = self.belief_update_by_ob(sim_function, gen, x_s)
-                grasp_star, _ = self.best_grasp_real(beta, pose)
-                grasp_star_hat, q_star_hat = self.best_grasp_gen(beta_hat)
+                grasp_star = self.best_grasp(beta)
+                grasp_star_hat, q_star_hat = self.best_grasp(beta_hat)
                 score_actual_grasp = self.grasp_score[grasp_star][pose]
                 score_estimated_grasp = self.grasp_score[grasp_star_hat][pose]
                 actual_confidence = score_actual_grasp * beta[pose]
@@ -335,6 +335,13 @@ class AEVD:
                 self.init_grasp_star = grasp
 
         self.generated_readings = {}
+        self.real_readings = {}
+        for sensor_id, pose_id in product(self.sensor_configs, self.obj_poses):
+            if not sensor_id in self.generated_readings.keys():
+                self.generated_readings[sensor_id] = {}
+                self.real_readings[sensor_id] = {}
+            self.real_readings[sensor_id][pose_id], self.generated_readings[sensor_id][pose_id] = read_data(
+                self.readings_file, sensor_id, pose_id)
         # for sensor_id, pose_id in product(self.sensor_configs, self.obj_poses):
         #     if not sensor_id in self.generated_readings.keys():
         #         self.generated_readings[sensor_id] = {}
@@ -344,26 +351,16 @@ class AEVD:
         #                                                                                lidar_height=0.05,
         #                                                                                lidar_dist=0.2,
         #                                                                                scale=2.5, q=int(sensor_id[1]))
-        for sensor_id, pose_id in product(self.sensor_configs, self.obj_poses):
-            file_name = readings_file + '/' + sensor_id[1] + '_' + pose_id[1] + '.csv'
-            if sensor_id not in self.generated_readings:
-                self.generated_readings[sensor_id] = {}
-            df = pd.read_csv(file_name, header=None)
-            self.generated_readings[sensor_id][pose_id] = np.ones((360,))
-            for index, row in df.iterrows():
-                degrees = int(row[0])
-                distance = row[1]
-                self.generated_readings[sensor_id][pose_id][degrees] = distance
-
-    def similarity(self, ob1, ob2):
-        v1 = ob1
-        if not isinstance(ob1, np.ndarray):
-            v1 = ob2vec(ob1)
-        v2 = ob2
-        if not isinstance(ob2, np.ndarray):
-            v2 = ob2vec(ob2)
-        norm = np.linalg.norm(v1 - v2)
-        return float(np.exp(-norm))
+        # for sensor_id, pose_id in product(self.sensor_configs, self.obj_poses):
+        #     file_name = readings_file + '/' + sensor_id[1] + '_' + pose_id[1] + '.csv'
+        #     if sensor_id not in self.generated_readings:
+        #         self.generated_readings[sensor_id] = {}
+        #     df = pd.read_csv(file_name, header=None)
+        #     self.generated_readings[sensor_id][pose_id] = np.ones((360,))
+        #     for index, row in df.iterrows():
+        #         degrees = int(row[0])
+        #         distance = row[1]
+        #         self.generated_readings[sensor_id][pose_id][degrees] = distance
 
     def belief_update(self, sensor_id, ob, similarity):
         belief = {}
@@ -375,7 +372,7 @@ class AEVD:
         if normalization == 0:
             norm = NormSim()
             max_value = max(norm(ob, sensor_id_generate_readings[k]) for k in belief.keys())
-            max_keys = [k for k in belief.keys() if norm(ob, sensor_id_generate_readings[k]) == max_value]
+            max_keys = [k for k in belief.keys() if max_value - norm(ob, sensor_id_generate_readings[k]) < 0.015]
             for k in max_keys:
                 belief[k] = 1.0 / len(max_keys)
             return belief
@@ -384,31 +381,31 @@ class AEVD:
         return belief
 
     def __call__(self, sensor_id, sim_function):
-        files = os.listdir(self.readings_file)
-        real_readings = {}
-        sensor_idx = int(sensor_id[1])
-        for file_name in files:
-            if file_name.startswith(str(sensor_idx)):
-                pose_id = 'P' + file_name[2]
-                source_path = os.path.join(self.readings_file, file_name)
-                df = pd.read_csv(source_path, header=None)
-                real_readings[pose_id] = np.ones((360,))
-                for index, row in df.iterrows():
-                    degrees = int(row[0])
-                    distance = row[1]
-                    real_readings[pose_id][degrees] = distance
+        # files = os.listdir(self.readings_file)
+        # real_readings = {}
+        # sensor_idx = int(sensor_id[1])
+        # for file_name in files:
+        #     if file_name.startswith(str(sensor_idx)):
+        #         pose_id = 'P' + file_name[2]
+        #         source_path = os.path.join(self.readings_file, file_name)
+        #         df = pd.read_csv(source_path, header=None)
+        #         real_readings[pose_id] = np.ones((360,))
+        #         for index, row in df.iterrows():
+        #             degrees = int(row[0])
+        #             distance = row[1]
+        #             real_readings[pose_id][degrees] = distance
 
-        aevd = (len(self.obj_poses)) * [-self.init_q_star]
+        aevd = -self.init_q_star
         for p_i in self.obj_poses:
-            new_belief = self.belief_update(sensor_id, real_readings[p_i], sim_function)
+            new_belief = self.belief_update(sensor_id, self.real_readings[sensor_id][p_i], sim_function)
             q_star = 0
             for grasp in self.grasps:
                 q = 0
                 for p_k in self.obj_poses:
                     q += new_belief[p_k] * self.grasp_score[grasp][p_k]
                 q_star = max(q, q_star)
-            aevd[int(p_i[1]) - 1] += q_star
-        return sum(aevd) / len(self.obj_poses)
+            aevd += q_star * self.belief[p_i]
+        return aevd
 
 
 def int2Roman(num):
@@ -477,7 +474,7 @@ def analysis1(obj):
 def table(table_id, obj):
     voa_calc = VOA(grasp_score_file='../config/grasp_score/' + obj + '.yaml',
                    readings_file='../results/' + obj + '/different_pov')
-    voa_calc.plot_example()
+    # voa_calc.plot_example()
     sims = [DeterministicSim(), GaussianSim(), NormSim()]
     sensors = ['Q1', 'Q2', 'Q3', 'Q4']
     if table_id == 1:
@@ -541,5 +538,6 @@ def base(obj, test_num):
 
 
 if __name__ == '__main__':
-    obj = 'mug'
-    base(obj, 2)
+    obj = 'expo'
+    table(1, obj)
+    analysis1(obj)

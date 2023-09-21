@@ -1,7 +1,8 @@
 import numpy as np
 import math
 import yaml
-import scipy
+import csv
+import random
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
@@ -155,7 +156,7 @@ def euler_to_quaternion(roll, pitch, yaw):
     return qx, qy, qz, qw
 
 
-def extract_lidar_readings(obj_file_path, pose=None, pose_file=None, lidar_height=0.05, lidar_dist=0.25, scale=0.01,
+def extract_lidar_readings(obj_file_path, pose=None, pose_file=None, lidar_height=0.05, lidar_dist=0.15, scale=0.01,
                            q=1):
     vertices, faces = load_obj(obj_file_path)
     vertices *= scale
@@ -221,33 +222,40 @@ def extract_lidar_readings(obj_file_path, pose=None, pose_file=None, lidar_heigh
 
 if __name__ == "__main__":
     mesh_file = '../data/objects/expo/expo.obj'
-    pose_file = '../config/poses/example_pose.yaml'
-    inter_points, points, readings = extract_lidar_readings(mesh_file, pose_file=pose_file, lidar_height=0.001,
-                                                            scale=2.0)
-    # plt.scatter(inter_points[:, 0], inter_points[:, 1])
-    # plt.show()
+    poses_file = '../config/poses/expo_poses.yaml'
+    with open(poses_file, 'r') as yaml_file:
+        poses = yaml.safe_load(yaml_file)
 
-    # # Visualize the mesh with intersecting triangles
-    # # visualize_mesh(vertices, intersecting_triangles)
-    # # Choose a constant z value for the plane
-    z_plane = 0.0  # You can set this to any value you like
-
-    # Create a 3D representation of the points by appending the constant z value
-    # points_3d = np.column_stack((points, np.full(points.shape[0], z_plane)))
-    inter_points_3d = np.column_stack((inter_points, np.full(inter_points.shape[0], z_plane)))
-
-    # Create a 3D scatter plot
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-
-    # Scatter the points on the plane
-    # ax.scatter(points_3d[:, 0], points_3d[:, 1], points_3d[:, 2])
-    ax.scatter(inter_points_3d[:, 0], inter_points_3d[:, 1], inter_points_3d[:, 2])
-
-    # Set labels for the axes
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
-
-    # Show the plot
-    plt.show()
+    noise = 0.008
+    for q in range(1, 5):
+        for pose in poses:
+            inter_points, points, readings = extract_lidar_readings(mesh_file, pose=poses[pose], lidar_height=0.001,
+                                                                    scale=2.4, q=q)
+            res = []
+            for degree, dis in readings.items():
+                res.append((degree, dis +  random.uniform(-noise, noise), dis))
+            with open('../results/expo/different_pov/' + str(q) + '_' + pose[1] + '.csv',
+                      'w', newline='') as csvfile:
+                csv_writer = csv.writer(csvfile)
+                csv_writer.writerows(res)
+            # z_plane = 0.0  # You can set this to any value you like
+            #
+            # # Create a 3D representation of the points by appending the constant z value
+            # # points_3d = np.column_stack((points, np.full(points.shape[0], z_plane)))
+            # inter_points_3d = np.column_stack((inter_points, np.full(inter_points.shape[0], z_plane)))
+            #
+            # # Create a 3D scatter plot
+            # fig = plt.figure()
+            # ax = fig.add_subplot(111, projection='3d')
+            #
+            # # Scatter the points on the plane
+            # # ax.scatter(points_3d[:, 0], points_3d[:, 1], points_3d[:, 2])
+            # ax.scatter(inter_points_3d[:, 0], inter_points_3d[:, 1], inter_points_3d[:, 2])
+            #
+            # # Set labels for the axes
+            # ax.set_xlabel('X')
+            # ax.set_ylabel('Y')
+            # ax.set_zlabel('Z')
+            #
+            # # Show the plot
+            # plt.show()
